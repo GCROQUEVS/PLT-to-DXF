@@ -32,6 +32,12 @@
       </div>
     </section>
 
+    <label class="textopt">
+      <input id="optTextLines" type="checkbox">
+      <span><strong>Converter textos em linhas</strong>
+        <span class="muted">— os textos viram desenho (linhas) no DXF e não ficam editáveis</span></span>
+    </label>
+
     <details class="options">
       <summary>Opções de conversão</summary>
       <div class="opt-grid">
@@ -75,7 +81,8 @@
         <li><strong>Sem limites:</strong> o processamento é feito em streaming no navegador, em vários núcleos em paralelo. O único limite é a memória do seu computador.</li>
         <li><strong>Privado:</strong> os arquivos nunca saem do seu computador.</li>
         <li><strong>Camadas por caneta:</strong> cada caneta (SP1, SP2…) vira uma camada <code>PEN1</code>, <code>PEN2</code>… com cores diferentes.</li>
-        <li><strong>Comandos suportados:</strong> IN, SP, PU, PD, PA, PR, PE, CI, AA, AR, AT, RT, EA, ER, RA, RR, IP, SC, LB, SI, DI, DT, DF.</li>
+        <li><strong>Comandos suportados:</strong> IN, SP, PU, PD, PA, PR, PE, CI, AA, AR, AT, RT, EA, ER, RA, RR, IP, SC, LB, LO, SI, DI, DT, DF.</li>
+        <li><strong>Textos:</strong> por padrão viram texto editável no DXF. Marque <em>Converter textos em linhas</em> para que virem traços (fonte de traço único), sem texto editável.</li>
         <li><strong>Saída:</strong> DXF R12 (AC1009), compatível com AutoCAD, LibreCAD, CorelDRAW, Inkscape, Audaces, Lectra, Gerber e outros.</li>
         <li><strong>Dica:</strong> se o desenho sair no tamanho errado, troque a <em>Resolução do PLT</em> nas opções e converta de novo.</li>
       </ul>
@@ -85,6 +92,7 @@
   <footer class="wrap foot muted">Código aberto · funciona offline depois de carregado</footer>
 
   <script src="vendor/jszip.min.js"></script>
+  <script src="font.js"></script>
   <script src="converter.js"></script>
   <script src="app.js"></script>
 </body>

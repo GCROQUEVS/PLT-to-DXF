@@ -31,9 +31,16 @@
     return {
       unitsPerMM: upm > 0 ? upm : 40,
       outUnit: $('optUnit').value,
-      previewLimit: $('optPreview').checked ? 200000 : 0
+      previewLimit: $('optPreview').checked ? 200000 : 0,
+      textAsLines: $('optTextLines').checked
     };
   }
+
+  // Lembra a escolha "textos em linhas" entre visitas
+  try { $('optTextLines').checked = localStorage.getItem('textAsLines') === '1'; } catch (e) { /* sem storage */ }
+  $('optTextLines').addEventListener('change', () => {
+    try { localStorage.setItem('textAsLines', $('optTextLines').checked ? '1' : '0'); } catch (e) { /* sem storage */ }
+  });
 
   $('optRes').addEventListener('change', () => { $('customWrap').hidden = $('optRes').value !== 'custom'; });
 
@@ -142,8 +149,9 @@
     const b = stats.bounds;
     const u = b.unit === 'pu' ? 'un' : b.unit;
     const parts = [];
-    const nEnt = stats.polylines + stats.lines + stats.circles + stats.arcs + stats.texts;
+    const nEnt = stats.polylines + stats.lines + stats.circles + stats.arcs + (stats.textAsLines ? 0 : stats.texts);
     parts.push(nEnt.toLocaleString('pt-BR') + ' entidades');
+    if (stats.texts) parts.push(stats.texts.toLocaleString('pt-BR') + (stats.textAsLines ? ' textos em linhas' : ' textos editáveis'));
     parts.push(fmtNum(b.maxX - b.minX) + ' × ' + fmtNum(b.maxY - b.minY) + ' ' + u);
     parts.push(stats.layers.length + (stats.layers.length === 1 ? ' camada' : ' camadas'));
     parts.push(fmtSize(blob.size));

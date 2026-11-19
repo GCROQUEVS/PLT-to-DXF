@@ -6,10 +6,11 @@ Site estático que converte arquivos **PLT (HPGL / HPGL-2)** em **DXF**, direto 
 - **Privado**: nenhum arquivo é enviado para servidor algum
 - Arraste arquivos **ou pastas inteiras**; baixe um por um, tudo em `.zip` ou salve direto em uma pasta (Chrome/Edge)
 - Cada caneta (`SP1`, `SP2`…) vira uma camada (`PEN1`, `PEN2`…)
+- Opção **Converter textos em linhas**: os textos (`LB`) viram traços de uma fonte de traço único (Hershey Simplex), sem texto editável no DXF. A escolha fica salva no navegador
 - Saída DXF R12 (AC1009): abre em AutoCAD, LibreCAD, CorelDRAW, Inkscape, Audaces, etc.
 - Sem dependências externas (JSZip incluído em `vendor/`)
 
-Comandos suportados: `IN SP PU PD PA PR PE CI AA AR AT RT EA ER RA RR IP SC LB SI DI DR DT DF`.
+Comandos suportados: `IN SP PU PD PA PR PE CI AA AR AT RT EA ER RA RR IP SC LB LO SI DI DR DT DF`.
 
 ## Publicar no GitHub Pages
 
@@ -41,4 +42,6 @@ altere **Opções de conversão → Resolução do PLT**.
 | `app.js` | Fila, pool de workers, downloads |
 | `converter.js` | Parser HPGL + gerador DXF (funciona também no Node) |
 | `worker.js` | Web Worker que roda o conversor |
+| `font.js` | Fonte de traço único Hershey Simplex (textos em linhas) |
 | `vendor/jszip.min.js` | Geração do `.zip` (licença MIT) |
+| `vendor/hersheytext-LICENSE` | Licença dos dados da fonte (MIT) |

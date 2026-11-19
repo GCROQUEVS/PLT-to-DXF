@@ -1,4 +1,4 @@
-importScripts('converter.js');
+importScripts('font.js', 'converter.js');
 
 self.onmessage = async (e) => {
   const { id, file, options } = e.data;

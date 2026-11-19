@@ -15,7 +15,7 @@
     'IW', 'OP', 'OI', 'OS', 'OE', 'OH', 'OW', 'OA', 'OC', 'OD', 'OF', 'OG', 'OL',
     'OO', 'MC', 'MG', 'PP', 'QL', 'FT', 'LA', 'SM', 'SA', 'SS', 'CS', 'CA', 'SL',
     'ES', 'CP', 'TR', 'AC', 'AF', 'AH', 'AP', 'CT', 'DC', 'DP', 'IM', 'CV', 'GC',
-    'KY', 'PM', 'EP', 'FP', 'LO', 'SB', 'SD', 'AD', 'NR', 'BL', 'TD', 'UL', 'WG',
+    'KY', 'PM', 'EP', 'FP', 'SB', 'SD', 'AD', 'NR', 'BL', 'TD', 'UL', 'WG',
     'EW', 'CC', 'CM', 'CR', 'DL', 'DS', 'DV', 'FI', 'FN', 'IV', 'LM', 'MT', 'PB',
     'RF', 'SG', 'SV', 'TL', 'XT', 'YT', 'ZZ', 'PT', 'GM', 'MV', 'EM', 'BR', 'BZ'
   ]);
@@ -44,7 +44,7 @@
   }
 
   function createConverter(opts) {
-    const o = Object.assign({ unitsPerMM: 40, outUnit: 'mm', previewLimit: 250000 }, opts || {});
+    const o = Object.assign({ unitsPerMM: 40, outUnit: 'mm', previewLimit: 250000, textAsLines: false }, opts || {});
     const upm = o.unitsPerMM > 0 ? o.unitsPerMM : 40;
     const k = o.outUnit === 'in' ? 1 / (upm * 25.4) : o.outUnit === 'pu' ? 1 : 1 / upm;
 
@@ -139,18 +139,99 @@
       w('0\nARC\n8\n' + layerName() + '\n10\n' + fmt(X) + '\n20\n' + fmt(Y) + '\n30\n0\n40\n' + fmt(R) + '\n50\n' + fmt(s) + '\n51\n' + fmt(e) + '\n');
     }
 
-    function emitText(str) {
-      const lines = str.replace(/\r/g, '').split('\n');
-      const rad = dirAngle * Math.PI / 180;
-      for (let i = 0; i < lines.length; i++) {
-        const t = dxfText(lines[i]);
-        if (!t.trim()) continue;
-        stats.texts++;
-        const off = i * charH * 1.5;
-        const px = (x + off * Math.sin(rad)) * k, py = (y - off * Math.cos(rad)) * k;
-        ext(px, py);
-        w('0\nTEXT\n8\n' + layerName() + '\n10\n' + fmt(px) + '\n20\n' + fmt(py) + '\n30\n0\n40\n' + fmt(charH * k) + '\n1\n' + t + '\n50\n' + fmt(dirAngle) + '\n');
+    // Traços dos acentos, em coordenadas da fonte (c = centro do glifo, t = topo do acento)
+    function accentStrokes(mark, c, t) {
+      switch (mark) {
+        case 0x301: return [[c - 1, t, c + 2, t - 3]];                                  // agudo
+        case 0x300: return [[c - 2, t - 3, c + 1, t]];                                  // grave
+        case 0x302: return [[c - 3, t, c, t - 3, c + 3, t]];                            // circunflexo
+        case 0x303: return [[c - 3, t - 1, c - 1.5, t - 2.5, c + 1.5, t - 0.5, c + 3, t - 2]]; // til
+        case 0x308: return [[c - 2.5, t - 1, c - 2.5, t - 2], [c + 2.5, t - 1, c + 2.5, t - 2]]; // trema
+        case 0x30A: return [[c - 1, t - 3, c + 1, t - 3, c + 1.5, t - 1.5, c + 1, t, c - 1, t, c - 1.5, t - 1.5, c - 1, t - 3]]; // anel
+        case 0x327: return [[c, 22, c, 24, c + 2, 25, c, 27, c - 2, 27]];               // cedilha
       }
+      return [];
+    }
+    const DEGREE = [8, [[3, 1, 1, 2, 0, 4, 1, 6, 3, 7, 5, 6, 6, 4, 5, 2, 3, 1]]];
+
+    // Retorna os traços de um caractere: {adv, strokes:[[x,y,...]]} em coordenadas da fonte
+    function glyph(ch) {
+      const font = root.HERSHEY_SIMPLEX;
+      const code = ch.codePointAt(0);
+      if (font[code]) return { adv: font[code][0], strokes: font[code][1] };
+      if (ch === '°' || ch === 'º' || ch === 'ª') return { adv: DEGREE[0], strokes: DEGREE[1] };
+      const nfd = ch.normalize('NFD');
+      const base = nfd[0], bc = base.codePointAt(0);
+      if (nfd.length > 1 && font[bc]) {
+        const adv = font[bc][0];
+        let strokes = font[bc][1];
+        if (base === 'i' || base === 'j') strokes = strokes.filter((s) => Math.max(...s.filter((_, i) => i % 2)) >= 8);
+        strokes = strokes.slice();
+        const top = (bc >= 65 && bc <= 90) ? -1 : 6;
+        for (let m = 1; m < nfd.length; m++) strokes.push(...accentStrokes(nfd.codePointAt(m), adv / 2, top));
+        return { adv, strokes };
+      }
+      return { adv: font[63][0], strokes: font[63][1] }; // '?'
+    }
+
+    function emitText(str) {
+      flushPoly();
+      const lines = str.replace(/\r\n?/g, '\n').split('\n');
+      const rad = dirAngle * Math.PI / 180, cs = Math.cos(rad), sn = Math.sin(rad);
+      const x0 = x, y0 = y;
+      const W = (u, v) => [x0 + u * cs - v * sn, y0 + u * sn + v * cs];
+      const cell = 1.5 * charW;
+      const lo = ((labelOrigin % 10) || 1);
+      const hz = ((lo - 1) / 3) | 0, vt = (lo - 1) % 3;
+      const fx = charW / 14, fy = charH / 21;
+      const layer = layerName();
+      let endU = 0, endV = 0;
+      for (let i = 0; i < lines.length; i++) {
+        const chars = Array.from(lines[i]).filter((c) => c.codePointAt(0) >= 32);
+        const lineV = -i * 2 * charH;
+        // Modo linhas: espaçamento proporcional (avanço de cada glifo); modo texto: passo fixo do HPGL
+        const glyphs = o.textAsLines ? chars.map(glyph) : null;
+        const advs = glyphs ? glyphs.map((g) => g.adv * fx) : chars.map(() => cell);
+        const total = advs.reduce((a, b) => a + b, 0);
+        const width = glyphs ? total : (chars.length ? total - 0.5 * charW : 0);
+        const du = -hz * width / 2, dv = -vt * charH / 2;
+        endU = du + total; endV = lineV + dv;
+        if (!chars.join('').trim()) continue;
+        stats.texts++;
+        if (o.textAsLines) {
+          let gu = du;
+          for (let j = 0; j < chars.length; j++) {
+            const g = glyphs[j];
+            const u0 = gu;
+            gu += advs[j];
+            for (const s of g.strokes) {
+              const pts = [];
+              for (let p = 0; p < s.length; p += 2) {
+                const q = W(u0 + s[p] * fx, lineV + dv + (22 - s[p + 1]) * fy);
+                pts.push(q[0], q[1]);
+              }
+              if (pts.length === 2) pts.push(pts[0] + 0.01, pts[1]); // ponto isolado
+              emitPoly(pts, layer);
+            }
+          }
+        } else {
+          const t = dxfText(chars.join(''));
+          const ins = W(0, lineV), ip = [ins[0] * k, ins[1] * k];
+          const a = W(du, lineV + dv);
+          pseg(a[0], a[1], W(du + width, lineV + dv)[0], W(du + width, lineV + dv)[1]);
+          ext(a[0] * k, a[1] * k);
+          let e = '0\nTEXT\n8\n' + layer + '\n10\n' + fmt(ip[0]) + '\n20\n' + fmt(ip[1]) + '\n30\n0\n40\n' + fmt(charH * k) +
+            '\n1\n' + t + '\n50\n' + fmt(dirAngle) + '\n';
+          if (lo !== 1) {
+            e += '72\n' + hz + '\n11\n' + fmt(ip[0]) + '\n21\n' + fmt(ip[1]) + '\n31\n0\n';
+            if (vt) e += '73\n' + (vt + 1) + '\n';
+          }
+          w(e);
+        }
+      }
+      // Posição da caneta após o texto (LO 1: fim do texto; outros: volta à origem)
+      if (lo === 1) { const p = W(endU, endV); x = p[0]; y = p[1]; }
+      else { x = x0; y = y0; }
     }
 
     // ---------- Estado do plotter ----------
@@ -158,10 +239,10 @@
     let poly = null, polyLayer = '';
     let P1 = [0, 0], P2 = [10000, 10000];
     let sc = null; // {xmin, ymin, sx, sy}
-    let charH = 2.7 * upm, dirAngle = 0, labelTerm = 3;
+    let charH = 2.7 * upm, charW = 1.9 * upm, dirAngle = 0, labelTerm = 3, labelOrigin = 1;
 
     function resetDefaults() {
-      abs = true; sc = null; charH = 2.7 * upm; dirAngle = 0; labelTerm = 3;
+      abs = true; sc = null; charH = 2.7 * upm; charW = 1.9 * upm; dirAngle = 0; labelTerm = 3; labelOrigin = 1;
     }
 
     function flushPoly() {
@@ -265,7 +346,11 @@
           sc = { xmin: n[0], ymin: n[2], sx: fx, sy: fy };
           break;
         }
-        case 'SI': if (n.length >= 2) charH = n[1] * 10 * upm; else charH = 2.7 * upm; break;
+        case 'SI':
+          if (n.length >= 2) { charW = Math.abs(n[0]) * 10 * upm; charH = Math.abs(n[1]) * 10 * upm; }
+          else { charW = 1.9 * upm; charH = 2.7 * upm; }
+          break;
+        case 'LO': labelOrigin = n.length ? (n[0] | 0) : 1; break;
         case 'DI': case 'DR':
           dirAngle = n.length >= 2 ? Math.atan2(n[1], n[0]) * 180 / Math.PI : 0; break;
         default:
@@ -416,6 +501,7 @@
       stats.layers = Array.from(layers.keys());
       stats.bounds = { minX, minY, maxX, maxY, unit: o.outUnit };
       stats.previewTruncated = prevTruncated;
+      stats.textAsLines = !!o.textAsLines;
 
       return {
         parts: [h].concat(chunks, ['0\nENDSEC\n0\nEOF\n']),
