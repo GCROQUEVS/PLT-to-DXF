@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Conversor PLT para DXF</title>
+  <meta name="description" content="Converta arquivos PLT (HPGL) em DXF gratuitamente, direto no navegador, sem limite de arquivos ou tamanho.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%232563eb'/><path d='M7 23 L13 9 L19 19 L25 11' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <h1>PLT → DXF</h1>
+      <p class="lead">Converta arquivos <strong>PLT / HPGL</strong> em <strong>DXF</strong> sem limite de arquivos e de tamanho.
+        A conversão acontece <strong>no seu computador</strong>: nenhum arquivo é enviado para a internet.</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="drop" class="drop" tabindex="0">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+      <p class="drop-title">Arraste arquivos ou pastas aqui</p>
+      <p class="muted">.plt, .hpgl, .hpg, .plo, .hgl — quantos quiser</p>
+      <div class="drop-actions">
+        <label class="btn primary">Escolher arquivos
+          <input id="fileInput" type="file" multiple accept=".plt,.hpgl,.hpg,.plo,.hgl,.prn,.txt,*/*" hidden>
+        </label>
+        <label class="btn">Escolher pasta
+          <input id="dirInput" type="file" webkitdirectory multiple hidden>
+        </label>
+      </div>
+    </section>
+
+    <details class="options">
+      <summary>Opções de conversão</summary>
+      <div class="opt-grid">
+        <label>Resolução do PLT
+          <select id="optRes">
+            <option value="40" selected>HP-GL padrão — 40 unidades/mm (0,025 mm)</option>
+            <option value="39.37">1000 unidades/polegada (39,37/mm)</option>
+            <option value="10">10 unidades/mm</option>
+            <option value="100">100 unidades/mm</option>
+            <option value="custom">Personalizada…</option>
+          </select>
+        </label>
+        <label id="customWrap" hidden>Unidades por mm
+          <input id="optCustom" type="number" min="0.0001" step="any" value="40">
+        </label>
+        <label>Unidade do DXF
+          <select id="optUnit">
+            <option value="mm" selected>Milímetros</option>
+            <option value="in">Polegadas</option>
+            <option value="pu">Unidades do plotter (sem escala)</option>
+          </select>
+        </label>
+        <label class="check"><input id="optPreview" type="checkbox" checked> Mostrar pré-visualização</label>
+      </div>
+    </details>
+
+    <section id="toolbar" class="toolbar" hidden>
+      <div id="summary" class="summary"></div>
+      <div class="tools">
+        <button id="btnFolder" class="btn" hidden>Salvar todos em uma pasta</button>
+        <button id="btnZip" class="btn primary">Baixar todos (.zip)</button>
+        <button id="btnClear" class="btn ghost">Limpar</button>
+      </div>
+    </section>
+
+    <ul id="list" class="list"></ul>
+
+    <section class="info">
+      <h2>Como funciona</h2>
+      <ul>
+        <li><strong>Sem limites:</strong> o processamento é feito em streaming no navegador, em vários núcleos em paralelo. O único limite é a memória do seu computador.</li>
+        <li><strong>Privado:</strong> os arquivos nunca saem do seu computador.</li>
+        <li><strong>Camadas por caneta:</strong> cada caneta (SP1, SP2…) vira uma camada <code>PEN1</code>, <code>PEN2</code>… com cores diferentes.</li>
+        <li><strong>Comandos suportados:</strong> IN, SP, PU, PD, PA, PR, PE, CI, AA, AR, AT, RT, EA, ER, RA, RR, IP, SC, LB, SI, DI, DT, DF.</li>
+        <li><strong>Saída:</strong> DXF R12 (AC1009), compatível com AutoCAD, LibreCAD, CorelDRAW, Inkscape, Audaces, Lectra, Gerber e outros.</li>
+        <li><strong>Dica:</strong> se o desenho sair no tamanho errado, troque a <em>Resolução do PLT</em> nas opções e converta de novo.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="wrap foot muted">Código aberto · funciona offline depois de carregado</footer>
+
+  <script src="vendor/jszip.min.js"></script>
+  <script src="converter.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
