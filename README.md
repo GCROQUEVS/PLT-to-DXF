@@ -6,7 +6,7 @@ Site estático que converte arquivos **PLT (HPGL / HPGL-2)** em **DXF**, direto 
 - **Privado**: nenhum arquivo é enviado para servidor algum
 - Arraste arquivos **ou pastas inteiras**; baixe um por um, tudo em `.zip` ou salve direto em uma pasta (Chrome/Edge)
 - Cada caneta (`SP1`, `SP2`…) vira uma camada (`PEN1`, `PEN2`…)
-- Opção **Converter textos em linhas**: os textos (`LB`) viram traços de uma fonte de traço único (Hershey Simplex), sem texto editável no DXF. A escolha fica salva no navegador
+- Opção **Converter textos em linhas**: os textos (`LB`) viram desenho, sem texto editável no DXF. Estilos: formas com preenchimento sólido (cada traço vira um retângulo fechado + `SOLID`), só contorno, ou linhas simples. Espessura ajustável. As escolhas ficam salvas no navegador
 - Saída DXF R12 (AC1009): abre em AutoCAD, LibreCAD, CorelDRAW, Inkscape, Audaces, etc.
 - Sem dependências externas (JSZip incluído em `vendor/`)
 

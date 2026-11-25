@@ -32,15 +32,30 @@
       unitsPerMM: upm > 0 ? upm : 40,
       outUnit: $('optUnit').value,
       previewLimit: $('optPreview').checked ? 200000 : 0,
-      textAsLines: $('optTextLines').checked
+      textAsLines: $('optTextLines').checked,
+      textStyle: $('optTextStyle').value,
+      textWeight: parseFloat($('optTextWeight').value)
     };
   }
 
-  // Lembra a escolha "textos em linhas" entre visitas
-  try { $('optTextLines').checked = localStorage.getItem('textAsLines') === '1'; } catch (e) { /* sem storage */ }
-  $('optTextLines').addEventListener('change', () => {
-    try { localStorage.setItem('textAsLines', $('optTextLines').checked ? '1' : '0'); } catch (e) { /* sem storage */ }
-  });
+  // Opções de texto: lembradas entre visitas
+  const store = {
+    get(key) { try { return localStorage.getItem(key); } catch (e) { return null; } },
+    set(key, v) { try { localStorage.setItem(key, v); } catch (e) { /* sem storage */ } }
+  };
+  function syncTextUI() {
+    $('textSub').hidden = !$('optTextLines').checked;
+    $('weightWrap').hidden = $('optTextStyle').value === 'simple';
+    $('weightVal').textContent = $('optTextWeight').value;
+  }
+  $('optTextLines').checked = store.get('textAsLines') === '1';
+  if (store.get('textStyle')) $('optTextStyle').value = store.get('textStyle');
+  if (store.get('textWeight')) $('optTextWeight').value = store.get('textWeight');
+  if (!$('optTextStyle').value) $('optTextStyle').value = 'filled';
+  syncTextUI();
+  $('optTextLines').addEventListener('change', () => { store.set('textAsLines', $('optTextLines').checked ? '1' : '0'); syncTextUI(); });
+  $('optTextStyle').addEventListener('change', () => { store.set('textStyle', $('optTextStyle').value); syncTextUI(); });
+  $('optTextWeight').addEventListener('input', () => { store.set('textWeight', $('optTextWeight').value); syncTextUI(); });
 
   $('optRes').addEventListener('change', () => { $('customWrap').hidden = $('optRes').value !== 'custom'; });
 
@@ -149,7 +164,7 @@
     const b = stats.bounds;
     const u = b.unit === 'pu' ? 'un' : b.unit;
     const parts = [];
-    const nEnt = stats.polylines + stats.lines + stats.circles + stats.arcs + (stats.textAsLines ? 0 : stats.texts);
+    const nEnt = stats.polylines + stats.lines + stats.circles + stats.arcs + stats.solids + (stats.textAsLines ? 0 : stats.texts);
     parts.push(nEnt.toLocaleString('pt-BR') + ' entidades');
     if (stats.texts) parts.push(stats.texts.toLocaleString('pt-BR') + (stats.textAsLines ? ' textos em linhas' : ' textos editáveis'));
     parts.push(fmtNum(b.maxX - b.minX) + ' × ' + fmtNum(b.maxY - b.minY) + ' ' + u);

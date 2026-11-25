@@ -44,7 +44,7 @@
   }
 
   function createConverter(opts) {
-    const o = Object.assign({ unitsPerMM: 40, outUnit: 'mm', previewLimit: 250000, textAsLines: false }, opts || {});
+    const o = Object.assign({ unitsPerMM: 40, outUnit: 'mm', previewLimit: 250000, textAsLines: false, textStyle: 'filled', textWeight: 10 }, opts || {});
     const upm = o.unitsPerMM > 0 ? o.unitsPerMM : 40;
     const k = o.outUnit === 'in' ? 1 / (upm * 25.4) : o.outUnit === 'pu' ? 1 : 1 / upm;
 
@@ -66,7 +66,7 @@
       if (px < minX) minX = px; if (px > maxX) maxX = px;
       if (py < minY) minY = py; if (py > maxY) maxY = py;
     }
-    const stats = { polylines: 0, lines: 0, circles: 0, arcs: 0, texts: 0, commands: 0, points: 0, unsupported: [] };
+    const stats = { polylines: 0, lines: 0, circles: 0, arcs: 0, solids: 0, texts: 0, commands: 0, points: 0, unsupported: [] };
     const unsupported = new Set();
 
     // Pré-visualização: segmentos x1,y1,x2,y2 (unidades de plotter)
@@ -137,6 +137,40 @@
       const X = cx * k, Y = cy * k, R = r * k;
       ext(X - R, Y - R); ext(X + R, Y + R);
       w('0\nARC\n8\n' + layerName() + '\n10\n' + fmt(X) + '\n20\n' + fmt(Y) + '\n30\n0\n40\n' + fmt(R) + '\n50\n' + fmt(s) + '\n51\n' + fmt(e) + '\n');
+    }
+
+    // Preenchimento sólido (SOLID do DXF R12). Cantos em ordem de contorno; o SOLID usa 1,2,4,3.
+    function emitSolid(c, layer) {
+      stats.solids++;
+      const v = [c[0], c[1], c[2], c[3], c[6], c[7], c[4], c[5]];
+      let e = '0\nSOLID\n8\n' + layer + '\n';
+      for (let i = 0; i < 4; i++) {
+        const px = v[i * 2] * k, py = v[i * 2 + 1] * k;
+        ext(px, py);
+        e += (10 + i) + '\n' + fmt(px) + '\n' + (20 + i) + '\n' + fmt(py) + '\n' + (30 + i) + '\n0\n';
+      }
+      w(e);
+    }
+
+    // Transforma cada segmento de um traço em uma forma retangular fechada de espessura t
+    // (com pontas estendidas t/2 para cobrir as junções), opcionalmente com preenchimento sólido.
+    function strokeShapes(pts, t, layer) {
+      const h = t / 2;
+      for (let i = 0; i + 3 < pts.length; i += 2) {
+        const ax = pts[i], ay = pts[i + 1], bx = pts[i + 2], by = pts[i + 3];
+        let dx = bx - ax, dy = by - ay;
+        const len = Math.hypot(dx, dy);
+        if (len < 1e-9) { dx = 1; dy = 0; } else { dx /= len; dy /= len; }
+        const nx = -dy * h, ny = dx * h, ex = dx * h, ey = dy * h;
+        const c = [
+          ax - ex + nx, ay - ey + ny,
+          bx + ex + nx, by + ey + ny,
+          bx + ex - nx, by + ey - ny,
+          ax - ex - nx, ay - ey - ny
+        ];
+        emitPoly(c.concat(c[0], c[1]), layer);
+        if (o.textStyle === 'filled') emitSolid(c, layer);
+      }
     }
 
     // Traços dos acentos, em coordenadas da fonte (c = centro do glifo, t = topo do acento)
@@ -211,7 +245,8 @@
                 pts.push(q[0], q[1]);
               }
               if (pts.length === 2) pts.push(pts[0] + 0.01, pts[1]); // ponto isolado
-              emitPoly(pts, layer);
+              if (o.textStyle === 'simple') emitPoly(pts, layer);
+              else strokeShapes(pts, charH * Math.max(1, Math.min(40, +o.textWeight || 10)) / 100, layer);
             }
           }
         } else {
@@ -502,6 +537,7 @@
       stats.bounds = { minX, minY, maxX, maxY, unit: o.outUnit };
       stats.previewTruncated = prevTruncated;
       stats.textAsLines = !!o.textAsLines;
+      stats.textStyle = o.textStyle;
 
       return {
         parts: [h].concat(chunks, ['0\nENDSEC\n0\nEOF\n']),
