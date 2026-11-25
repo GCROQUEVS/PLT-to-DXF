@@ -10,7 +10,9 @@ Site estático que converte arquivos **PLT (HPGL / HPGL-2)** em **DXF**, direto 
 - Saída DXF R12 (AC1009): abre em AutoCAD, LibreCAD, CorelDRAW, Inkscape, Audaces, etc.
 - Sem dependências externas (JSZip incluído em `vendor/`)
 
-Comandos suportados: `IN SP PU PD PA PR PE CI AA AR AT RT EA ER RA RR IP SC LB LO SI DI DR DT DF`.
+- Símbolos: letras gregas (φ Φ Δ Ω μ π…), diâmetro (Ø ⌀), ° ± × ÷ ² ³ e acentos. Codificação dos textos automática (Windows-1252, ou a indicada pelos comandos `CS`/`CA` do arquivo) ou escolhida nas opções: CP850, CP437, HP Roman-8. Caracteres não reconhecidos são listados na tela
+
+Comandos suportados: `IN SP PU PD PA PR PE CI AA AR AT RT EA ER RA RR IP SC LB LO SI DI DR DT DF CS CA`.
 
 ## Publicar no GitHub Pages
 
@@ -42,6 +44,6 @@ altere **Opções de conversão → Resolução do PLT**.
 | `app.js` | Fila, pool de workers, downloads |
 | `converter.js` | Parser HPGL + gerador DXF (funciona também no Node) |
 | `worker.js` | Web Worker que roda o conversor |
-| `font.js` | Fonte de traço único Hershey Simplex (textos em linhas) |
+| `font.js` | Fontes de traço único Hershey (latina e grega) e tabelas de codificação |
 | `vendor/jszip.min.js` | Geração do `.zip` (licença MIT) |
 | `vendor/hersheytext-LICENSE` | Licença dos dados da fonte (MIT) |

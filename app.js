@@ -34,7 +34,8 @@
       previewLimit: $('optPreview').checked ? 200000 : 0,
       textAsLines: $('optTextLines').checked,
       textStyle: $('optTextStyle').value,
-      textWeight: parseFloat($('optTextWeight').value)
+      textWeight: parseFloat($('optTextWeight').value),
+      charset: $('optCharset').value
     };
   }
 
@@ -173,6 +174,7 @@
     parts.push(secs + ' s');
     let txt = parts.join(' · ');
     if (stats.unsupported.length) txt += ' · ignorados: ' + stats.unsupported.join(', ');
+    if (stats.unknownChars && stats.unknownChars.length) txt += ' · caracteres não reconhecidos (viraram ?): ' + stats.unknownChars.join(', ') + ' — tente outra codificação nas opções';
     if (nEnt === 0) { txt = 'Nenhuma geometria encontrada — o arquivo é mesmo HPGL/PLT? ' + txt; job.el.detail.className = 'detail err'; }
     else job.el.detail.className = 'detail ok';
     job.el.detail.textContent = txt;

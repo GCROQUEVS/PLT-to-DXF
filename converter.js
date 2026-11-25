@@ -13,7 +13,7 @@
   const IGNORED = new Set([
     'LT', 'VS', 'FS', 'PW', 'WU', 'NP', 'PC', 'CO', 'BP', 'PS', 'RO', 'PG', 'EC',
     'IW', 'OP', 'OI', 'OS', 'OE', 'OH', 'OW', 'OA', 'OC', 'OD', 'OF', 'OG', 'OL',
-    'OO', 'MC', 'MG', 'PP', 'QL', 'FT', 'LA', 'SM', 'SA', 'SS', 'CS', 'CA', 'SL',
+    'OO', 'MC', 'MG', 'PP', 'QL', 'FT', 'LA', 'SM', 'SA', 'SS', 'SL',
     'ES', 'CP', 'TR', 'AC', 'AF', 'AH', 'AP', 'CT', 'DC', 'DP', 'IM', 'CV', 'GC',
     'KY', 'PM', 'EP', 'FP', 'SB', 'SD', 'AD', 'NR', 'BL', 'TD', 'UL', 'WG',
     'EW', 'CC', 'CM', 'CR', 'DL', 'DS', 'DV', 'FI', 'FN', 'IV', 'LM', 'MT', 'PB',
@@ -44,7 +44,7 @@
   }
 
   function createConverter(opts) {
-    const o = Object.assign({ unitsPerMM: 40, outUnit: 'mm', previewLimit: 250000, textAsLines: false, textStyle: 'filled', textWeight: 10 }, opts || {});
+    const o = Object.assign({ unitsPerMM: 40, outUnit: 'mm', previewLimit: 250000, textAsLines: false, textStyle: 'filled', textWeight: 10, charset: 'auto' }, opts || {});
     const upm = o.unitsPerMM > 0 ? o.unitsPerMM : 40;
     const k = o.outUnit === 'in' ? 1 / (upm * 25.4) : o.outUnit === 'pu' ? 1 : 1 / upm;
 
@@ -205,12 +205,77 @@
         for (let m = 1; m < nfd.length; m++) strokes.push(...accentStrokes(nfd.codePointAt(m), adv / 2, top));
         return { adv, strokes };
       }
+      const ex = extraGlyph(code);
+      if (ex) return ex;
+      unknownChars.add(code);
       return { adv: font[63][0], strokes: font[63][1] }; // '?'
+    }
+
+    // Símbolos montados a partir de outros glifos
+    function extraGlyph(code) {
+      const font = root.HERSHEY_SIMPLEX, extra = root.HERSHEY_EXTRA || {};
+      if (extra[code]) return { adv: extra[code][0], strokes: extra[code][1] };
+      const slashed = (bc) => {
+        const st = font[bc][1];
+        let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+        for (const s of st) for (let i = 0; i < s.length; i += 2) {
+          x0 = Math.min(x0, s[i]); x1 = Math.max(x1, s[i]); y0 = Math.min(y0, s[i + 1]); y1 = Math.max(y1, s[i + 1]);
+        }
+        return { adv: font[bc][0], strokes: st.concat([[x0 - 1, y1 + 2, x1 + 1, y0 - 2]]) };
+      };
+      const small = (bc) => ({
+        adv: Math.round(font[bc][0] * 0.6) + 2,
+        strokes: font[bc][1].map((s) => s.map((v, i) => (i % 2 ? v * 0.6 - 1 : v * 0.6 + 1)))
+      });
+      switch (code) {
+        case 0xD8: case 0x2205: case 0x2300: return slashed(79);   // Ø ∅ ⌀ (diâmetro)
+        case 0xF8: return slashed(111);                            // ø
+        case 0xB9: return small(49);                               // ¹
+        case 0xB2: return small(50);                               // ²
+        case 0xB3: return small(51);                               // ³
+        case 0xB1: return { adv: 26, strokes: [[13, 5, 13, 17], [5, 11, 21, 11], [5, 21, 21, 21]] }; // ±
+        case 0xB7: case 0x2219: return { adv: 10, strokes: [[5, 11, 5, 12]] };                       // ·
+        case 0xA0: return { adv: 16, strokes: [] };                // espaço não separável
+      }
+      return null;
+    }
+
+    // A entrada pode vir decodificada como Windows-1252 (0x80-0x9F viram outros códigos); volta ao byte original
+    let rev = null;
+    function rawByte(u) {
+      if (!rev) {
+        rev = new Map();
+        const t = (root.CHARSETS || {}).cp1252 || [];
+        for (let i = 0; i < 32; i++) if (t[i] && t[i] !== 0xFFFD) rev.set(t[i], 128 + i);
+      }
+      return rev.get(u) || 63;
+    }
+
+    // Converte os bytes de um texto (LB) para Unicode conforme a codificação
+    const SETS = { 277: 'roman8', 341: 'cp437', 405: 'cp850', 14: 'cp1252', 629: 'cp1252', 19: 'cp1252' };
+    function decodeLabel(str) {
+      const tables = root.CHARSETS || {};
+      const forced = o.charset && o.charset !== 'auto' ? o.charset : null;
+      const std = tables[forced || SETS[charsetStd] || 'cp1252'];
+      const alt = tables[forced || SETS[charsetAlt] || 'roman8'];
+      let out = '', shifted = false;
+      for (let i = 0; i < str.length; i++) {
+        let b = str.charCodeAt(i);
+        if (b > 255) b = rawByte(b);
+        if (b === 14) { shifted = true; continue; }   // SO: conjunto alternativo
+        if (b === 15) { shifted = false; continue; }  // SI: conjunto padrão
+        let u = b;
+        if (b >= 128) u = std ? std[b - 128] : b;
+        else if (shifted && b >= 33 && b <= 126) u = alt ? alt[b] : b;
+        if (u === 0xFFFD) { unknownChars.add(b); u = 63; } // vira '?'
+        out += String.fromCodePoint(u);
+      }
+      return out;
     }
 
     function emitText(str) {
       flushPoly();
-      const lines = str.replace(/\r\n?/g, '\n').split('\n');
+      const lines = decodeLabel(str).replace(/\r\n?/g, '\n').split('\n');
       const rad = dirAngle * Math.PI / 180, cs = Math.cos(rad), sn = Math.sin(rad);
       const x0 = x, y0 = y;
       const W = (u, v) => [x0 + u * cs - v * sn, y0 + u * sn + v * cs];
@@ -275,9 +340,11 @@
     let P1 = [0, 0], P2 = [10000, 10000];
     let sc = null; // {xmin, ymin, sx, sy}
     let charH = 2.7 * upm, charW = 1.9 * upm, dirAngle = 0, labelTerm = 3, labelOrigin = 1;
+    let charsetStd = 0, charsetAlt = 0;
+    const unknownChars = new Set();
 
     function resetDefaults() {
-      abs = true; sc = null; charH = 2.7 * upm; charW = 1.9 * upm; dirAngle = 0; labelTerm = 3; labelOrigin = 1;
+      abs = true; sc = null; charH = 2.7 * upm; charW = 1.9 * upm; dirAngle = 0; labelTerm = 3; labelOrigin = 1; charsetStd = 0; charsetAlt = 0;
     }
 
     function flushPoly() {
@@ -385,6 +452,8 @@
           if (n.length >= 2) { charW = Math.abs(n[0]) * 10 * upm; charH = Math.abs(n[1]) * 10 * upm; }
           else { charW = 1.9 * upm; charH = 2.7 * upm; }
           break;
+        case 'CS': charsetStd = n.length ? (n[0] | 0) : 0; break;
+        case 'CA': charsetAlt = n.length ? (n[0] | 0) : 0; break;
         case 'LO': labelOrigin = n.length ? (n[0] | 0) : 1; break;
         case 'DI': case 'DR':
           dirAngle = n.length >= 2 ? Math.atan2(n[1], n[0]) * 180 / Math.PI : 0; break;
@@ -538,6 +607,7 @@
       stats.previewTruncated = prevTruncated;
       stats.textAsLines = !!o.textAsLines;
       stats.textStyle = o.textStyle;
+      stats.unknownChars = Array.from(unknownChars).map((c) => (c < 256 ? '0x' : 'U+') + c.toString(16).toUpperCase().padStart(2, '0'));
 
       return {
         parts: [h].concat(chunks, ['0\nENDSEC\n0\nEOF\n']),
@@ -555,6 +625,7 @@
     const CH = 4 * 1024 * 1024;
     const size = file.size;
     for (let off = 0; off < size; off += CH) {
+      // Decodificador nativo (rápido); os bytes 0x80-0x9F são recuperados em decodeLabel
       const buf = await file.slice(off, off + CH).arrayBuffer();
       conv.feed(dec.decode(buf, { stream: true }));
       if (onProgress) onProgress(Math.min(1, (off + CH) / size));

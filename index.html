@@ -74,6 +74,15 @@
             <option value="pu">Unidades do plotter (sem escala)</option>
           </select>
         </label>
+        <label>Codificação dos textos
+          <select id="optCharset">
+            <option value="auto" selected>Automática (Windows-1252 ou a indicada no arquivo)</option>
+            <option value="cp1252">Windows-1252 / Latin-1</option>
+            <option value="cp850">DOS CP850 (multilíngue)</option>
+            <option value="cp437">DOS CP437</option>
+            <option value="roman8">HP Roman-8</option>
+          </select>
+        </label>
         <label class="check"><input id="optPreview" type="checkbox" checked> Mostrar pré-visualização</label>
       </div>
     </details>
@@ -95,9 +104,10 @@
         <li><strong>Sem limites:</strong> o processamento é feito em streaming no navegador, em vários núcleos em paralelo. O único limite é a memória do seu computador.</li>
         <li><strong>Privado:</strong> os arquivos nunca saem do seu computador.</li>
         <li><strong>Camadas por caneta:</strong> cada caneta (SP1, SP2…) vira uma camada <code>PEN1</code>, <code>PEN2</code>… com cores diferentes.</li>
-        <li><strong>Comandos suportados:</strong> IN, SP, PU, PD, PA, PR, PE, CI, AA, AR, AT, RT, EA, ER, RA, RR, IP, SC, LB, LO, SI, DI, DT, DF.</li>
+        <li><strong>Comandos suportados:</strong> IN, SP, PU, PD, PA, PR, PE, CI, AA, AR, AT, RT, EA, ER, RA, RR, IP, SC, LB, LO, SI, DI, DT, DF, CS, CA.</li>
         <li><strong>Textos:</strong> por padrão viram texto editável no DXF. Marque <em>Converter textos em linhas</em> para que virem desenho, sem texto editável: cada traço da letra vira uma forma fechada, com ou sem preenchimento sólido, o que dificulta copiar ou editar o texto.</li>
         <li><strong>Saída:</strong> DXF R12 (AC1009), compatível com AutoCAD, LibreCAD, CorelDRAW, Inkscape, Audaces, Lectra, Gerber e outros.</li>
+        <li><strong>Símbolos:</strong> letras gregas (φ, Φ, Δ, Ω, μ, π…), diâmetro (Ø), °, ±, ×, ², ³ e acentos. Se algum símbolo sair como <code>?</code>, troque a <em>Codificação dos textos</em> nas opções e converta de novo: o site mostra quais caracteres não reconheceu.</li>
         <li><strong>Dica:</strong> se o desenho sair no tamanho errado, troque a <em>Resolução do PLT</em> nas opções e converta de novo.</li>
       </ul>
     </section>
