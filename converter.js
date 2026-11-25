@@ -525,9 +525,12 @@
       beginCmd(cmd);
     }
 
+    let ended = false;
     function feed(s) {
+      if (ended) return;
       for (let i = 0, L = s.length; i < L; i++) {
         const c = s.charCodeAt(i);
+        if (c === 26) { ended = true; break; } // Ctrl-Z: fim do arquivo (o que vem depois costuma ser binário)
         switch (st) {
           case 0: idle(c); break;
           case 1:
