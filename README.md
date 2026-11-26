@@ -4,6 +4,7 @@ Site estático que converte arquivos **PLT (HPGL / HPGL-2)** em **DXF**, direto 
 
 - **Sem limite** de quantidade nem de tamanho de arquivo (processamento em streaming, com vários Web Workers em paralelo)
 - **Privado**: nenhum arquivo é enviado para servidor algum
+- **Visualizador**: clique na miniatura (ou em *Visualizar*) para abrir o DXF exportado em tela cheia, com zoom pela roda do mouse ou pinça, arrastar para mover, ajustar à tela, ligar/desligar camadas, fundo claro/escuro e coordenadas do cursor
 - Arraste arquivos **ou pastas inteiras**; baixe um por um, tudo em `.zip` ou salve direto em uma pasta (Chrome/Edge)
 - Cada caneta (`SP1`, `SP2`…) vira uma camada (`PEN1`, `PEN2`…)
 - Opção **Converter textos em linhas**: os textos (`LB`) viram desenho, sem texto editável no DXF. Estilos: formas com preenchimento sólido (cada traço vira um retângulo fechado + `SOLID`), só contorno, ou linhas simples. Espessura ajustável. As escolhas ficam salvas no navegador
@@ -43,7 +44,9 @@ altere **Opções de conversão → Resolução do PLT**.
 | `index.html`, `style.css` | Interface |
 | `app.js` | Fila, pool de workers, downloads |
 | `converter.js` | Parser HPGL + gerador DXF (funciona também no Node) |
-| `worker.js` | Web Worker que roda o conversor |
+| `worker.js` | Web Worker que roda o conversor e a leitura do DXF para o visualizador |
+| `viewer.js` | Visualizador (janela, zoom, camadas) |
+| `viewer-parse.js` | Leitor do DXF exportado para o visualizador |
 | `font.js` | Fontes de traço único Hershey (latina e grega) e tabelas de codificação |
 | `vendor/jszip.min.js` | Geração do `.zip` (licença MIT) |
 | `vendor/hersheytext-LICENSE` | Licença dos dados da fonte (MIT) |

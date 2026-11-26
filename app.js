@@ -184,6 +184,8 @@
     a.href = job.url; a.download = baseName(job.name);
     a.removeAttribute('aria-disabled'); a.classList.remove('disabled');
     a.hidden = false;
+    job.el.vw.hidden = false;
+    job.el.root.classList.add('viewable');
     if (preview && preview.length) drawPreview(job.el.canvas, preview);
     else job.el.root.classList.add('nopreview');
     updateSummary();
@@ -210,9 +212,16 @@
     const barWrap = document.createElement('div'); barWrap.className = 'bar';
     const bar = document.createElement('span'); barWrap.appendChild(bar);
     meta.append(name, detail, barWrap);
+    const acts = document.createElement('div'); acts.className = 'acts';
+    const vw = document.createElement('button'); vw.className = 'btn small'; vw.textContent = 'Visualizar'; vw.hidden = true;
     const dl = document.createElement('a'); dl.className = 'btn small'; dl.textContent = 'Baixar DXF'; dl.hidden = true;
-    root.append(canvas, meta, dl);
-    return { root, canvas, detail, bar, dl };
+    acts.append(vw, dl);
+    root.append(canvas, meta, acts);
+    const openViewer = () => { if (job.status === 'done' && window.DxfViewer) window.DxfViewer.open(job); };
+    vw.addEventListener('click', openViewer);
+    canvas.addEventListener('click', openViewer);
+    canvas.title = 'Clique para ampliar';
+    return { root, canvas, detail, bar, dl, vw };
   }
 
   function drawPreview(canvas, seg) {
@@ -298,9 +307,12 @@
 
   $('btnClear').addEventListener('click', () => {
     queue.length = 0;
-    for (const j of jobs) { if (j.url) URL.revokeObjectURL(j.url); }
     for (let i = jobs.length - 1; i >= 0; i--) {
-      if (jobs[i].status !== 'running') { jobs[i].el.root.remove(); jobs.splice(i, 1); }
+      if (jobs[i].status !== 'running') {
+        if (jobs[i].url) URL.revokeObjectURL(jobs[i].url);
+        jobs[i].viewData = null;
+        jobs[i].el.root.remove(); jobs.splice(i, 1);
+      }
     }
     if (!jobs.length) toolbar.hidden = true;
     updateSummary();
