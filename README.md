@@ -50,3 +50,9 @@ altere **Opções de conversão → Resolução do PLT**.
 | `font.js` | Fontes de traço único Hershey (latina e grega) e tabelas de codificação |
 | `vendor/jszip.min.js` | Geração do `.zip` (licença MIT) |
 | `vendor/hersheytext-LICENSE` | Licença dos dados da fonte (MIT) |
+
+## Atualizar o site
+
+Os arquivos são carregados com um número de versão (`?v=...` no `index.html` e `window.APP_VERSION`),
+para o navegador não usar arquivos antigos guardados em cache. Ao alterar qualquer arquivo `.js` ou `.css`,
+troque esse número em todos os lugares do `index.html`.

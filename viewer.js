@@ -95,7 +95,7 @@
     const id = ++reqId;
     const onP = (p) => { if (id === reqId) status.textContent = 'Lendo o DXF… ' + Math.round(p * 100) + '%'; };
     try {
-      if (!worker) worker = new Worker('worker.js');
+      if (!worker) worker = new Worker('worker.js?v=' + (window.APP_VERSION || ''));
     } catch (e) {
       return window.DxfView.readDxf(blob, onP);
     }

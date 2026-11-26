@@ -15,7 +15,7 @@
   let useWorkers = true;
   try {
     for (let i = 0; i < POOL; i++) {
-      const w = new Worker('worker.js');
+      const w = new Worker('worker.js?v=' + (window.APP_VERSION || ''));
       w.busy = false;
       w.onmessage = (e) => onWorkerMessage(w, e.data);
       w.onerror = (e) => { e.preventDefault(); if (w.job) fail(w.job, 'Erro no processamento'); w.busy = false; w.job = null; pump(); };

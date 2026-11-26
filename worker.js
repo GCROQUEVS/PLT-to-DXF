@@ -1,4 +1,6 @@
-importScripts('font.js', 'converter.js', 'viewer-parse.js');
+// Repassa a versão (?v=...) para os scripts, evitando arquivos antigos em cache
+const V = self.location.search;
+importScripts('font.js' + V, 'converter.js' + V, 'viewer-parse.js' + V);
 
 self.onmessage = async (e) => {
   const { id, type } = e.data;
